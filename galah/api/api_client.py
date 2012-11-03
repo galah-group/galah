@@ -2,8 +2,7 @@
 
 # The default configuration settings
 config = {
-    "api_url": "http://localhost:5000/api/call",
-    "login_url": "http://localhost:5000/api/login"
+    "galah_host": "http://localhost:5000",
 }
 
 import json
@@ -37,11 +36,17 @@ import requests
 
 # We'll need to store any cookies the server gives us (mainly the auth cookie)
 # and requests' sessions give us a nice way to do that.
-_session = requests.session()
+session = requests.session()
 
 def login(email, password):
-    request = _session.post(
-        config["login_url"], data = {"email": email, "password": password}
+    """
+    Attempts to authenticate with Galah using the given credentials.
+
+    """
+
+    request = session.post(
+        config["galah_host"] + "/api/login",
+        data = {"email": email, "password": password}
     )
     
     request.raise_for_status()
@@ -53,16 +58,22 @@ def login(email, password):
     # Nothing bad happened, go ahead and return what the server sent back
     return request.text
 
-def call(api_name, *args, **kwargs):
+import time
+def call(interactive, api_name, *args, **kwargs):
     """
     Makes an API call to the server with the given arguments. This function will
     block until the server sends its response.
+
+    Iff interactive is True then call will take care of printing to the console
+    itself, and will prompt the user if the server wants to push any downloads
+    down, None is returned. Otherwise, pushes will be ignored and the text sent
+    from the server will be returned, nothing will be printed to the console.
     
     """
     
     # May throw a requests.ConnectionError here if galah.api is unavailable.
-    request = _session.post(
-        config["api_url"],
+    request = session.post(
+        config["galah_host"] + "/api/call",
         data = _to_json(_form_call(api_name, *args, **kwargs)),
         headers = {"Content-Type": "application/json"}
     )
@@ -85,9 +96,58 @@ def call(api_name, *args, **kwargs):
     # because of some issues with Flask, so we have this custom header.
     if request.headers["X-CallSuccess"] != "True":
         raise RuntimeError(request.text)
+
+    # If we're not in interactive mode, our job is done already.
+    if not interactive:
+        return request.text
+
+    print request.text
+
+    # Check if the server wants us to download a file
+    if "X-Download" in request.headers:
+        default_name = request.headers.get(
+            "X-Download-DefaultName", "downloaded_file"
+        )
+
+        print "The server is requesting that you download a file..."
+        save_to = raw_input(
+            "Where would you like to save it (default: ./%s)?: " % default_name
+        )
+
+        # If they don't type anything in, go with the default.
+        if not save_to:
+            save_to = "./" + default_name
+
+        if os.path.isfile(save_to):
+            confirmation = raw_input(
+                "File %s already exists, would you like to overwrite it "
+                "(y, n)? " % save_to
+            )
+
+            if not confirmation.startswith("y"):
+                exit("Aborting.")
+
+        # Actually grab the file from the server
+        while True:
+            file_request = session.get(
+                config["galah_host"] + "/" + request.headers["X-Download"]
+            )
+            
+            if file_request.status_code == requests.codes.ok:
+                break
+
+            print "Download not ready yet, waiting for server... Retrying " \
+                  "in 2 seconds..."
+
+            time.sleep(2)
+
+        with open(save_to, "wb") as download_file:
+            download_file.write(file_request.content)
+
+        print "File saved to %s." % save_to
     
     # Nothing bad happened, go ahead and return what the server sent back
-    return request.text
+    return None
 
 import sys
 from optparse import OptionParser, make_option
@@ -141,7 +201,7 @@ def exec_to_shell():
     script_location = os.path.abspath(script_location)
 
     # Retrieve all of the available commands from the server
-    api_info = json.loads(call("get_api_info"))
+    api_info = json.loads(call(False, "get_api_info"))
     commands = [i["name"] for i in api_info]
 
     rcfile_path = os.path.join(os.environ["HOME"], ".galah/tmp/shellrc")
@@ -223,7 +283,7 @@ if __name__ == "__main__":
             print "--Logged in as %s--" % user
         except requests.exceptions.ConnectionError as e:
             print >> sys.stderr, "Could not connect with the given url '%s':" \
-                    % config["login_url"]
+                    % config["galah_host"]
             print >> sys.stderr, "\t" + str(e)
 
             exit(1)
@@ -235,14 +295,14 @@ if __name__ == "__main__":
     else:
         print "--Not logged in--"
     
-    # This will fail because duckface is not a proper email, but you should get
-    # past the authentication...
     try:
         try:
-            print call(*args)
+            # This function actually outputs the result of the call to the
+            # console.
+            call(True, *args)
         except requests.exceptions.ConnectionError as e:
             print >> sys.stderr, "Could not connect with the given url '%s':" \
-                    % config["api_url"]
+                    % config["galah_host"]
             print >> sys.stderr, "\t" + str(e)
 
             exit(1)

@@ -106,3 +106,5 @@ Below is reference material for every API command Galah supports.
 	commands/delete_assignment
 
 	commands/assignment_info
+
+	commands/get_archive

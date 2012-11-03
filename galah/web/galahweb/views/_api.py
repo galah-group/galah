@@ -75,9 +75,22 @@ def api_call():
         else:
             raise RuntimeError("%s is not a recognized API call." % api_name)
 
+        call_result = api_call(current_user, *api_args, **api_kwargs)
+
+        # If an API call returns a tuple, the second item will be headers that
+        # should be added onto the response.
+        response_headers = {"X-CallSuccess": True}
+        if isinstance(call_result, tuple):
+            response_text = call_result[0]
+            response_headers.update(call_result[1])
+        else:
+            response_text = call_result
+
+        print "Headers:", response_headers
+
         return Response(
-            response = api_call(current_user, *api_args, **api_kwargs),
-            headers = {"X-CallSuccess": "True"},
+            response = response_text,
+            headers = response_headers,
             mimetype = "text/plain"
         )
     except Exception as e:

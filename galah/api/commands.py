@@ -61,9 +61,9 @@ class APICall(object):
         
         # Only pass the current user to the function if the function wants it
         if len(self.argspec[0]) != 0 and self.argspec[0][0] == "current_user":
-            return str(self.wrapped_function(current_user, *args, **kwargs))
+            return self.wrapped_function(current_user, *args, **kwargs)
         else: 
-            return str(self.wrapped_function(*args, **kwargs))
+            return self.wrapped_function(*args, **kwargs)
 
 from decorator import decorator
 
@@ -154,7 +154,7 @@ def _to_datetime(time):
 ## Below are the actual API calls ##
 @_api_call()
 def get_api_info():
-    # This function should be memoized
+    # TODO: This function should be memoized
     
     api_info = []
     for k, v in api_calls.items():
@@ -548,135 +548,32 @@ def delete_assignment(current_user, id):
 
     to_delete.delete()
     
-    return "Success! %s deleted." % _assignment_to_str(to_delete)
+    return "Success! %s deleted." % _assignment_to_str(to_delete)      
 
-import threading
-import Queue
-tar_tasks_queue = Queue.Queue()
-tar_tasks_thread = None
-
-# Copied from web.views._upload_submission.SUBMISSION_DIRECTORY. Adding a new
-# submission should be transformed into an API call and _upload_submissions
-# should use that API call, but this will work for now.
-SUBMISSION_DIRECTORY = "/var/local/galah.web/submissions/"
-
-import tempfile
-import os
-import subprocess
-def tar_tasks():
-    # The thread that executes this function should execute as a daemon,
-    # therefore there is no reason to allow an explicit exit. It will be 
-    # brutally killed once the app exits.
-    while True:
-        # Block until we get a new task.
-        task = tar_tasks_queue.get()
-
-        # Find any expired archives and remove them
-        # TODO: Remove the actual archives as well.
-        Archive.objects(expires__lt = datetime.datetime.today()).delete()
-
-        # Create a temporary directory we will create our archive in
-        temp_directory = tempfile.mkdtemp()
-        
-        # We're going to create a list of file we need to put in the archive
-        files = [os.path.join(temp_directory, "meta.json")]
-
-        # Serialize the meta data and throw it into a file
-        json.dump(task[1], open(files[0], "w"))
-
-        for i in task[1]["submissions"]:
-            sym_path = os.path.join(temp_directory, i["id"])
-            os.symlink(os.path.join(SUBMISSION_DIRECTORY, i["id"]), sym_path)
-            files.append(sym_path)
-
-
-
-        archive_file = tempfile.mkstemp(suffix = ".tar.gz")[1]
-
-        # Run tar and do the actual archiving. Will block until it's finished.
-        return_code = subprocess.call(
-            [
-                "tar", "--dereference", "--create", "--gzip", "--directory",
-                temp_directory, "--file", archive_file
-            ] + [os.path.relpath(i, temp_directory) for i in files]
-        )
-
-        # Make the results available in the database
-        archive = Archive.objects.get(id = ObjectId(task[0]))
-        if return_code != 0:
-            archive.error_string = \
-                "tar failed with error code %d." % return_code
-        else:
-            archive.file_location = archive_file
-
-        archive.expires = \
-            datetime.datetime.today() + datetime.timedelta(hours = 2)
-
-        archive.save()
-        
-
+import tar_tasks
 @_api_call(("admin", "teacher"))
-def get_submissions(current_user, assignment, email = None):
-    """Creates an archive of students' submissions that a teacher or admin
-    can download.
-    
-    :param assignment: The assignment that the retrieved submissions will be
-                       for.
-    :param email: The user that the retrieved submissions will be created by.
-                 If none, all user's who submitted for the given assignment
-                 will be retrieved.
+def get_archive(current_user, assignment, email = ""):
+    the_assignment = _get_assignment(assignment).id
 
-    """
-    
-    query = {"assignment": ObjectId(assignment)}
-    
-    # If we were to always add user to the query, then mongo would search for
-    # documents with email == None in the case that email equals None, which is
-    # not desirable.
-    if email:
-        query["email"] = email
-    
-    submissions = list(Submission.objects(marked_for_grading = True, **query))
-    
-    if not submissions:
-        return "No submissions found."
-
-    # Form meta data on each submission that we will soon convert to JSON and
-    # put inside of the archive we will send the user.
-    submissions_meta = [
-        {"id": str(i.id), "user": i.user, "timestamp": str(i.timestamp)}
-            for i in submissions
-    ]
-
-    meta_data = {
-        "query": {"assignment": assignment, "email": email},
-        "submissions": submissions_meta
-    }
-
-    # Create a new entry in the database so we can track the progress of the
-    # job.
-    new_archive = Archive(requester = current_user.email)
-    new_archive.save(force_insert = True)
-
-    # Determine how many jobs are ahead of this one before we put it in the
-    # queue.
-    current_jobs = tar_tasks_queue.qsize()
+    jobs_ahead = tar_tasks.queue_size()
 
     # We will not perform the work of archiving right now but will instead pass
     # if off to another thread to take care of it.
-    tar_tasks_queue.put((new_archive.id, meta_data))
+    new_task = tar_tasks.Task(
+        id = ObjectId(),
+        requester = current_user.email,
+        assignment = the_assignment,
+        email = email
+    )
+    tar_tasks.add_task(new_task)
 
-    # If the thread responsible for archiving is not running, start it up.
-    global tar_tasks_thread
-    if tar_tasks_thread is None or not tar_tasks_thread.is_alive():
-        tar_tasks_thread = threading.Thread(name = "tar_tasks", target = tar_tasks)
-        tar_tasks_thread.start()
-
-    return ("Creating archive with id [%s]. Approximately %d jobs ahead of "
-            "you. Access your archive by trying "
-            "[Galah Domain]/archives/%s"
-                % (str(new_archive.id), current_jobs, str(new_archive.id)))
-
+    return (
+        "Your archive is being created. You have %d jobs ahead of you." %
+            jobs_ahead,
+        {
+            "X-Download": "archives/" + str(new_task.id),
+            "X-Download-DefaultName": "submissions.tar.gz"}
+    )
 
 from types import FunctionType
 api_calls = dict((k, v) for k, v in globals().items() if isinstance(v, APICall))
