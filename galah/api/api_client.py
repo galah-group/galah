@@ -34,9 +34,63 @@ def _form_call(api_name, *args, **kwargs):
 from warnings import warn
 import requests
 
+from oauth2client.tools import run
+from oauth2client.file import Storage
+
+# Google OAuth2
+from oauth2client.client import OAuth2WebServerFlow
+
+import httplib2
+
+# Google OAuth2 flow object to get user's email.
+flow = OAuth2WebServerFlow(
+  client_id='Galah Public Client ID',
+  client_secret='Galah Secret Client ID',
+  scope='https://www.googleapis.com/auth/userinfo.email',
+  user_agent='Galah')
+
 # We'll need to store any cookies the server gives us (mainly the auth cookie)
 # and requests' sessions give us a nice way to do that.
 session = requests.session()
+
+def oauth2login(oauth):
+    storage = Storage(".cache/galah_credentials")
+    credentials = storage.get()
+
+    email = ""
+
+    # Get new credentials if they don't exist or user does not want to use
+    # storage
+    if not credentials or oauth != "use_storage":
+        credentials = run(flow, storage)
+
+        # If the credentials are authorized, they've given permission.
+        http = httplib2.Http(cache=".cache")
+        http = credentials.authorize(http)
+
+        # Extract email and email verification
+        id_token = credentials.id_token
+        email = id_token["email"]
+        verified_email = id_token["verified_email"]
+
+        if verified_email != "true":
+            raise RuntimeError("Could not verify email")
+
+    request = _session.post(
+        config["login_url"], data = {"email":email, "oauth2":"true"}
+    )
+
+    request.raise_for_status()
+    
+    # Check if we successfully logged in.
+    if request.headers["X-CallSuccess"] != "True":
+        raise RuntimeError(request.text)
+    
+    # User was logged in properly, so we can store their credentials.
+    storage.put(credentials)
+
+    return email
+ 
 
 def login(email, password):
     """
@@ -169,6 +223,11 @@ def parse_arguments(args = sys.argv[1:]):
             help = "If specified, you will be placed in an interactive "
                    "bash shell that will allow you to execute api commands as "
                    "if they were regular system commands."
+        ),
+        make_option(
+            "--oauth", "-o", metavar = "OAUTHMETHOD",
+            help = "If specified, you will be able to login using your google "
+                   "account as long as the email matches one stored in the db."
         )
     ]
 
@@ -267,8 +326,21 @@ if __name__ == "__main__":
         except (IOError, KeyError):
             pass
 
+    oauth = options.oauth
     user = options.user or config.get("user")
     password = os.environ.get("GALAH_PASSWORD") or config.get("password")
+
+    # If oauth flag is specified, login without user or password info.
+    if oauth:
+        try:
+            email = oauth2login(oauth)
+
+            print "--Logged in as %s--" % email
+        except RuntimeError:
+            print >> sys.stderr, "Could not log in with provided email. " \
+                  "You must have an account before logging in."
+
+            exit(1)
 
     if user and not password:
         exit(

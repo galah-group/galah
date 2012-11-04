@@ -14,6 +14,7 @@ def get_many(dictionary, *args):
 def api_login():
     password = request.form["password"]
     email = request.form["email"]
+    oauth2 = request.form["oauth2"]
 
     # Pull the user object with the given email from the database if it exists.
     try:
@@ -22,7 +23,9 @@ def api_login():
         user = None
     
     # Check if the entered password is correct
-    if not user or not check_seal(password, deserialize_seal(str(user.seal))):
+    if not user or \
+       (not oauth2 and
+        not check_seal(password, deserialize_seal(str(user.seal)))):
         return Response(
             response = "Incorrect email or password.",
             headers = {"X-CallSuccess": "False"}
