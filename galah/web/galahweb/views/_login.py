@@ -34,9 +34,19 @@ from galah.db.crypto.passcrypt import check_seal, deserialize_seal
 from galah.db.models import User
 from flask.ext.login import login_user
 from galah.web.galahweb.auth import FlaskUser
-from flask import redirect, url_for, flash
+from flask import redirect, url_for, flash, request
 
-@app.route("/login", methods = ["GET", "POST"])
+# Google OAuth2
+from oauth2client.client import OAuth2WebServerFlow
+
+# Google OAuth2 flow object to get user's email.
+flow = OAuth2WebServerFlow(
+  client_id=app.config['GOOGLE_CLIENT_ID'],
+  client_secret=app.config['GOOGLE_CLIENT_SECRET'],
+  scope='https://www.googleapis.com/auth/userinfo.email',
+  redirect_uri=app.config['HOST_URL'] + '/oauth2callback')
+
+@app.route("/login/", methods = ["GET", "POST"])
 def login():
     form = LoginForm()
     
@@ -57,5 +67,48 @@ def login():
         else:
             login_user(user)
             return redirect(form.redirect_target or url_for("browse_assignments"))
+    elif request.args.get("type") == "rmail":
+        # Login using Google OAuth2
+        # Step 1 of two-factor authentication: redirect to AUTH url
+        auth_uri = flow.step1_get_authorize_url()
+        return redirect(auth_uri)
     
     return render_template("login.html", form = form)
+
+@app.route('/oauth2callback/')
+def authenticate_user():
+  """
+  Authenticate user as logged in after Google OAuth2 sends a callback.
+  """
+  error = request.args.get('error')
+  if error:
+    return redirect(url_for('login'))
+
+  # Get OAuth2 authentication code
+  code = request.args.get('code')
+
+  # Exchange code for fresh credentials
+  credentials = flow.step2_exchange(code)
+
+  # Extract email and email verification
+  id_token = credentials.id_token
+  email = id_token['email']
+  verified_email = id_token['verified_email']
+
+  if verified_email == 'true':
+      # Find the user with the given email
+      try:
+          user = FlaskUser(User.objects.get(email = email))
+      except User.DoesNotExist:
+          user = None
+
+      if not user:
+          flash("Account does not exist for this email", "error")
+      else:
+          login_user(user)
+          return redirect(url_for("browse_assignments"))
+
+  else:
+      flash(u'Sorry, we couldn\'t verify your email', 'error')
+      
+  return redirect(url_for('login'))

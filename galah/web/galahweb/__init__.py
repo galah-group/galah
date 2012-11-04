@@ -23,6 +23,11 @@ if "LOG_HANDLERS" in app.config:
     for i in app.config["LOG_HANDLERS"]:
         app.logger.addHandler(i)
 
+# Google OAuth2 Secret and Client Keys
+app.config["HOST_URL"] = 'http://localhost:5000'
+app.config["GOOGLE_CLIENT_ID"] = '401399822645-a1015kkb76m6evpn3mhk3hr4voqejt2f.apps.googleusercontent.com'
+app.config["GOOGLE_CLIENT_SECRET"] = 'TS6HarpynHCdSTesaRMlbaU_'
+
 import mongoengine
 if "MONGODB" in app.config:
     mongoengine.connect(app.config["MONGODB"])
