@@ -11,7 +11,7 @@ results to both the instructors and the students.
 
 Professors are responsible for creating test harnesses for their assignments,
 aside from that Galah does the rest of the work: running those tests inside of
-a secure VM; consolodating results into a database; and providing an interface
+a secure VM; consolidating results into a database; and providing an interface
 for the students and teachers to see the results of the testing.
 
 ## License
@@ -40,7 +40,7 @@ That's not even mentioning the other staff and faculty at UCR who have
 shared their knowledge with me. Thank you everyone who has helped me grow
 as a software engineer.
 
-Victor Hill was also the one who initially concieved of Galah, I just
+Victor Hill was also the one who initially conceived of Galah, I just
 implemented it.
 
 ### Christopher Johnson
