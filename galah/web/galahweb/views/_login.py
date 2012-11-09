@@ -29,7 +29,7 @@ class LoginForm(RedirectForm):
     password = PasswordField('Password', [validators.Required()])
 
 # The actual view
-from galah.web.galahweb import app
+from galah.web.galahweb import app, oauth_enabled
 from galah.db.crypto.passcrypt import check_seal, deserialize_seal
 from galah.db.models import User
 from flask.ext.login import login_user
@@ -38,11 +38,6 @@ from flask import redirect, url_for, flash, request
 
 # Google OAuth2
 from oauth2client.client import OAuth2WebServerFlow
-
-oauth_enabled = (
-    "GOOGLE_CLIENT_ID" in app.config and app.config["GOOGLE_CLIENT_ID"] and \
-    "GOOGLE_CLIENT_SECRET" in app.config and app.config["GOOGLE_CLIENT_SECRET"]
-)
 
 # Google OAuth2 flow object to get user's email.
 if oauth_enabled:

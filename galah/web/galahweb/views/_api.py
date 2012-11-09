@@ -1,5 +1,5 @@
 from flask import Response, request
-from galah.web.galahweb import app
+from galah.web.galahweb import app, oauth_enabled
 from flask.ext.login import current_user
 from galah.api.commands import api_calls
 from galah.db.crypto.passcrypt import check_seal, deserialize_seal
@@ -12,9 +12,38 @@ def get_many(dictionary, *args):
 
 @app.route("/api/login", methods = ["POST"])
 def api_login():
-    password = request.form["password"]
+    password = request.form.get("password", None)
     email = request.form["email"]
-    oauth2 = request.form.get("oauth2", "False")
+
+    # Optional arguments for OAuth2 Login
+    access_token = request.form.get("access_token", None)
+    audience = app.config["GOOGLE_CLIENT_ID"] if oauth_enabled else None
+    def verify_token(email, audience, access_token):
+        """
+        Sends a request to the Google tokeninfo backend to verify access_token
+
+        """
+        import requests
+        req = requests.post(
+            "https://www.googleapis.com/oauth2/v1/tokeninfo",
+            data={"access_token":access_token}
+        )
+
+        req.raise_for_status()
+
+        if req.status_code == 400:
+            raise RuntimeError(req.text)
+
+        # Access token looks fine, now verify user's email matches.
+        if req.json["email"] != email:
+            raise RuntimeError("Attempting to login as different user")
+
+        # Validate client id is matching to avoid confused deputy attack
+        if req.json["audience"] != audience:
+            raise RuntimeError("Invalid Client ID or OAuth2 not enabled")
+
+        # Looks like the key is valid
+        return True
 
     # Pull the user object with the given email from the database if it exists.
     try:
@@ -22,10 +51,11 @@ def api_login():
     except User.DoesNotExist:
         user = None
     
-    # Check if the entered password is correct
+    # Check if the entered password is correct or, if no password, that the
+    # access token can be validated using the Google tokeninfo backend.
     if not user or \
-       (oauth2 != "True" and
-        not check_seal(password, deserialize_seal(str(user.seal)))):
+       not(password) and not(verify_token(email, audience, access_token)) and \
+       not check_seal(password, deserialize_seal(str(user.seal))):
         return Response(
             response = "Incorrect email or password.",
             headers = {"X-CallSuccess": "False"}

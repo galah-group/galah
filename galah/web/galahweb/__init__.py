@@ -29,6 +29,11 @@ if "LOG_HANDLERS" in app.config:
     for i in app.config["LOG_HANDLERS"]:
         app.logger.addHandler(i)
 
+oauth_enabled = (
+    "GOOGLE_CLIENT_ID" in app.config and app.config["GOOGLE_CLIENT_ID"] and \
+    "GOOGLE_CLIENT_SECRET" in app.config and app.config["GOOGLE_CLIENT_SECRET"]
+)
+
 import mongoengine
 mongoengine.connect(app.config["MONGODB"])
 

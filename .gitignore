@@ -33,3 +33,6 @@ nosetests.xml
 .mr.developer.cfg
 
 .backup
+
+# Credentials cache
+.cache/

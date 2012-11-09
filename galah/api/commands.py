@@ -1,3 +1,4 @@
+
 from inspect import getargspec
 from warnings import warn
 from copy import deepcopy
@@ -188,6 +189,18 @@ def whoami(current_user):
         return current_user.id
     else:
         return "Anonymous"
+
+@_api_call()
+def get_oauth2_keys():
+    from galah.web import app
+    import json
+
+    google_api_keys = {
+        "CLIENT_ID": app.config["GOOGLE_CLIENT_ID"],
+        "CLIENT_SECRET": app.config["GOOGLE_CLIENT_SECRET"]
+    }
+
+    return json.dumps(google_api_keys, separators = (",", ":"))
 
 from galah.db.crypto.passcrypt import serialize_seal, seal
 from mongoengine import OperationError
