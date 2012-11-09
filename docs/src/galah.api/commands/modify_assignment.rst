@@ -6,7 +6,7 @@ Modifies an existing assignment.
 Reference
 ---------
 
-.. function:: modify_assignment(id[, name = '', due = '', for_class = '', due_cutoff = '']):
+.. function:: modify_assignment(id[, name = '', due = '', for_class = '', due_cutoff = '', hide_until = '']):
 
     :param id: The ID of the assignment to modify.
 
@@ -24,6 +24,10 @@ Reference
                        the due date. May be left blank to leave the original
                        value unchanged. If ``none`` is specified, the previous
                        cutoff date is removed.
+
+    :param hide_until: If specified, the assignment will not be visible to users
+                       until this time. If ``none`` is specified, the previous
+                       hide-until date is removed.
 
     :raises RuntimeError: If the assignment could not be found.
     

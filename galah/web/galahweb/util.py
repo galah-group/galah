@@ -21,3 +21,15 @@ def is_url_on_site(app, url):
         pass
         
     return True
+
+from galah.db.helpers.pretty import pretty_time_distance
+import datetime
+def create_time_element(timestamp, now = None):
+    if now is None:
+        now = datetime.datetime.today()
+
+    return '<time datetime"%s" title="%s">%s</time>' % (
+        timestamp.strftime("%Y-%m%dT%H:%M:%S"),
+        timestamp.strftime("%B %d, %Y at %I:%M:%S %p"),
+        pretty_time_distance(now, timestamp)
+    )

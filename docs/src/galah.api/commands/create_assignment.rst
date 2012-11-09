@@ -6,7 +6,7 @@ Creates an assignment.
 Reference
 ---------
 
-.. function:: create_assignment(name, due, for_class[, due_cutoff = '']):
+.. function:: create_assignment(name, due, for_class[, due_cutoff = '', hide_until = '']):
     
     :param name: The name of the assignment.
 
@@ -17,6 +17,10 @@ Reference
     :param due_cutoff: The cutoff date of the assignment (same format as due).
                        After the cutoff date, students won't even be able to
                        submit at all.
+
+	:param hide_until: If specified, the assignment will not be visible to users
+                       until this time. If ``none`` is specified, the previous
+                       hide-until date is removed.
 
     :raises RuntimeError: If you are not a teacher of for_class and not an
     					  admin.

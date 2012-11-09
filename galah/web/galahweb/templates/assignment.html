@@ -20,7 +20,7 @@
 	</script>
 {% endblock %}
 {% block content %}
-	{% if not cutoff_time %}
+	{% if not assignment.due_cutoff or now < assignment.due_cutoff %}
 	<div class="tab" id="upload_archive">
 		<h2>Upload a Submission</h2>
 		<form method="post" action="upload" enctype="multipart/form-data">
@@ -43,7 +43,9 @@
 	</div>
 	{% else %}
 	<div style="text-align: center;">
-		No more submissions will be accepted (cutoff was {{ cutoff_time }}).
+		{% autoescape false %}
+		No more submissions will be accepted (cutoff was {{ create_time_element(assignment.due_cutoff) }}).
+		{% endautoescape %}
 	</div>
 	{% endif %}
 	

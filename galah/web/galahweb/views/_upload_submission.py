@@ -62,7 +62,8 @@ def upload_submission(assignment_id):
         assignment = id,
         user = current_user.id,
         timestamp = datetime.datetime.now(),
-        marked_for_grading = True
+        marked_for_grading = True,
+        most_recent = True
     )
     new_submission.id = ObjectId()
 
@@ -93,6 +94,12 @@ def upload_submission(assignment_id):
     new_submission.uploaded_filenames.extend(
         secure_filename(i.data.filename) for i in form.archive.entries
             if i.data.filename
+    )
+
+    # The old "most_recent" submission is no longer the most recent.
+    Submission.objects(assignment = id, most_recent = True).update(
+        multi = False,
+        set__most_recent = False
     )
 
     new_submission.save()

@@ -12,7 +12,8 @@ from bson.objectid import ObjectId
 from bson.errors import InvalidId
 from flask import abort, render_template, get_flashed_messages
 from galah.db.models import Assignment, Submission
-from galah.db.helpers.pretty import pretty_time, pretty_time_distance
+from galah.db.helpers.pretty import pretty_time
+from galah.web.galahweb.util import create_time_element
 import datetime
 
 @app.route("/assignments/<assignment_id>/")
@@ -43,17 +44,10 @@ def view_assignment(assignment_id):
     for i in submissions:
         i.timestamp_pretty = pretty_time(i.timestamp)
     
-    # Figure out if submissions should be allowed
-    cutoff_time = None
-    if assignment.due_cutoff and \
-            assignment.due_cutoff < datetime.datetime.today():
-        cutoff_time = pretty_time_distance(
-            datetime.datetime.today(), assignment.due_cutoff
-        )
-    
     return render_template(
         "assignment.html",
-        cutoff_time = cutoff_time,
+        now = datetime.datetime.today(),
+        create_time_element = create_time_element,
         assignment = assignment, 
         submissions = submissions,
         simple_archive_form = simple_archive_form,

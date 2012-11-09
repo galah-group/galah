@@ -151,6 +151,9 @@ def _to_datetime(time):
         raise ValueError(
             "Could not convert %s into a time object." % repr(time)
         )
+
+def _datetime_to_str(time):
+    return datetime.datetime.strftime(time, "%m/%d/%Y %H:%M:%S")
         
 ## Below are the actual API calls ##
 @_api_call()
@@ -193,8 +196,8 @@ def get_oauth2_keys():
     import json
 
     google_api_keys = {
-        "CLIENT_ID": app.config["GOOGLE_CLIENT_ID"],
-        "CLIENT_SECRET": app.config["GOOGLE_CLIENT_SECRET"]
+        "CLIENT_ID": app.config["GOOGLE_APICLIENT_ID"],
+        "CLIENT_SECRET": app.config["GOOGLE_APICLIENT_SECRET"]
     }
 
     return json.dumps(google_api_keys, separators = (",", ":"))
@@ -448,7 +451,8 @@ def delete_class(to_delete):
                 % (_class_to_str(the_class), assignments_string))
 
 @_api_call(("admin", "teacher"))
-def create_assignment(current_user, name, due, for_class, due_cutoff = ""):
+def create_assignment(current_user, name, due, for_class, due_cutoff = "",
+                      hide_until = ""):
     # The attributes of the assignmnet we're creating
     atts = {"name": name}
 
@@ -456,6 +460,9 @@ def create_assignment(current_user, name, due, for_class, due_cutoff = ""):
 
     if due_cutoff:
         atts["due_cutoff"] = _to_datetime(due_cutoff)
+
+    if hide_until:
+        atts["hide_until"] = _to_datetime(hide_until)
 
     the_class = _get_class(for_class)
 
@@ -480,6 +487,9 @@ def assignment_info(id):
     attribute_strings = []
     for k, v in assignment._data.items():
         if k and v:
+            if type(v) is datetime.datetime:
+                v = _datetime_to_str(v)
+
             attribute_strings.append("%s = %s" % (k, v))
 
     attributes = "\n\t".join(attribute_strings)
@@ -489,7 +499,7 @@ def assignment_info(id):
 
 @_api_call(("admin", "teacher"))
 def modify_assignment(current_user, id, name = "", due = "", for_class = "",
-                      due_cutoff = ""):
+                      due_cutoff = "", hide_until = ""):
     assignment = _get_assignment(id)
 
     # Save the string representation of the original assignment show we can show
@@ -516,7 +526,7 @@ def modify_assignment(current_user, id, name = "", due = "", for_class = "",
 
         change_log.append(
             "Due date changed from '%s' to '%s'."
-                % (str(assignment.due), str(due_date))
+                % (_datetime_to_str(assignment.due), _datetime_to_str(due_date))
         )
 
         assignment.due = due_date
@@ -529,10 +539,26 @@ def modify_assignment(current_user, id, name = "", due = "", for_class = "",
 
         change_log.append(
             "Cutoff date changed from '%s' to '%s'."
-                % (str(assignment.due_cutoff), str(cutoff_date))
+                % (
+                    _datetime_to_str(assignment.due_cutoff),
+                    _datetime_to_str(cutoff_date)
+                )
         )
 
         assignment.due_cutoff = cutoff_date
+
+    if hide_until:    
+        if hide_until.lower() == "none":
+            hide_until = datetime.datetime.min
+        else:
+            hide_until = _to_datetime(hide_until)
+
+        change_log.append(
+            "Hide-until date changed from '%s' to '%s'."
+                % (str(assignment.hide_until), str(hide_until))
+        )
+
+        assignment.hide_until = hide_until
 
     if for_class:
         old_class = Class.objects.get(id = ObjectId(assignment.for_class))

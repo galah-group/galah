@@ -6,6 +6,7 @@ from galah.db.crypto.passcrypt import check_seal, deserialize_seal
 from galah.db.models import User
 from flask.ext.login import login_user
 from galah.web.galahweb.auth import FlaskUser
+import requests
 
 def get_many(dictionary, *args):
     return dict((i, dictionary.get(i)) for i in args)
@@ -13,60 +14,63 @@ def get_many(dictionary, *args):
 @app.route("/api/login", methods = ["POST"])
 def api_login():
     password = request.form.get("password", None)
-    email = request.form["email"]
+    email = request.form.get("email", None)
 
-    # Optional arguments for OAuth2 Login
-    access_token = request.form.get("access_token", None)
-    audience = app.config["GOOGLE_CLIENT_ID"] if oauth_enabled else None
-    def verify_token(email, audience, access_token):
-        """
-        Sends a request to the Google tokeninfo backend to verify access_token
-
-        """
-        import requests
-        req = requests.post(
-            "https://www.googleapis.com/oauth2/v1/tokeninfo",
-            data={"access_token":access_token}
-        )
-
-        req.raise_for_status()
-
-        if req.status_code == 400:
-            raise RuntimeError(req.text)
-
-        # Access token looks fine, now verify user's email matches.
-        if req.json["email"] != email:
-            raise RuntimeError("Attempting to login as different user")
-
-        # Validate client id is matching to avoid confused deputy attack
-        if req.json["audience"] != audience:
-            raise RuntimeError("Invalid Client ID or OAuth2 not enabled")
-
-        # Looks like the key is valid
-        return True
-
-    # Pull the user object with the given email from the database if it exists.
-    try:
-        user = FlaskUser(User.objects.get(email = email))
-    except User.DoesNotExist:
-        user = None
-    
-    # Check if the entered password is correct or, if no password, that the
-    # access token can be validated using the Google tokeninfo backend.
-    if not user or \
-       not(password) and not(verify_token(email, audience, access_token)) and \
-       not check_seal(password, deserialize_seal(str(user.seal))):
-        return Response(
-            response = "Incorrect email or password.",
-            headers = {"X-CallSuccess": "False"}
-        )
-    else:
-        login_user(user)
+    def success(the_user):
+        login_user(the_user)
         
         return Response(
             response = "Successfully logged in.",
             headers = {"X-CallSuccess": "True"}
         )
+
+    def failure():
+        return Response(
+            response = "Incorrect email or password.",
+            headers = {"X-CallSuccess": "False"}
+        )
+
+    # If the user is trying to login by giving us an access_token they got from
+    # signing in through google, validate the token.
+    access_token = request.form.get("access_token", None)
+    if access_token and oauth_enabled:
+        # Ask google to verify that they authed the user.
+        req = requests.post(
+            "https://www.googleapis.com/oauth2/v1/tokeninfo",
+            data = { "access_token": access_token }
+        )
+
+        if req.status_code != requests.codes.ok:
+            return failure()
+
+        # Validate client id is matching to avoid confused deputy attack
+        if req.json["audience"] != app.config["GOOGLE_APICLIENT_ID"]:
+            raise RuntimeError("Invalid Client ID")
+
+        # Grab the user from the database (here we also check to make sure that
+        # this user actually has account on Galah).
+        try:
+            user = FlaskUser(User.objects.get(email = req.json["email"]))
+        except User.DoesNotExist:
+            return failure()
+
+        return success(user)
+    elif access_token and not oauth_enabled:
+        raise RuntimeError("Login via OAuth2 is not configured.")
+    
+    # If the user is trying to authenticate through Galah...
+    if email and password:
+        try:
+            user = FlaskUser(User.objects.get(email = email))
+        except User.DoesNotExist:
+            return failure()
+
+        if check_seal(password, deserialize_seal(str(user.seal))):
+            return success(user)
+        else:
+            return failure()
+    
+    raise RuntimeError("Malformed Request")
 
 @app.route("/api/call", methods = ["POST"])
 def api_call():

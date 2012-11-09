@@ -40,14 +40,13 @@ class Submission(Document):
     assignment = ObjectIdField(required = True)
     user = StringField(required = True)
     timestamp = DateTimeField(required = True)
-    testables = StringField(required = True)
     marked_for_grading = BooleanField()
+    most_recent = BooleanField()
     
     # Each filename should be a path relative to the root of the archive they
     # uploaded if they uploaded an archive, otherwise each filename should be
     # just the filename. Include extensions.
     uploaded_filenames = ListField(StringField())
-    #test_result = EmbeddedDocumentField(TestResult)
     
     meta = {
         "allow_inheritance": False,

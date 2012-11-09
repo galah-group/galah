@@ -42,10 +42,10 @@ from oauth2client.client import OAuth2WebServerFlow
 # Google OAuth2 flow object to get user's email.
 if oauth_enabled:
     flow = OAuth2WebServerFlow(
-        client_id=app.config['GOOGLE_CLIENT_ID'],
-        client_secret=app.config['GOOGLE_CLIENT_SECRET'],
-        scope='https://www.googleapis.com/auth/userinfo.email',
-        redirect_uri=app.config['HOST_URL'] + '/oauth2callback'
+        client_id=app.config["GOOGLE_SERVERSIDE_ID"],
+        client_secret=app.config["GOOGLE_SERVERSIDE_SECRET"],
+        scope="https://www.googleapis.com/auth/userinfo.email",
+        redirect_uri=app.config["HOST_URL"] + "/oauth2callback"
     )
 
 @app.route("/login/", methods = ["GET", "POST"])

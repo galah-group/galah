@@ -6,17 +6,37 @@
     {% for i in assignments %} 
         <div>
             <div class="title heading">
-                <span class="class_name">{{ i.class_name}}</span> <a href="/assignments/{{ i.id }}">{{ i.name }}</a>
+                <span class="class_name">{{ i.class_name}}</span>
+                <a href="/assignments/{{ i.id }}">{{ i.name }}</a>
+            {% if i.status %}
+                <span class="submission_status" style="color: {{ i.status_color }}">
+                    {% autoescape false %}{{ i.status }}{% endautoescape %}
+                </span>
+            {% endif %}
             </div>
             <div class="due">
-                due <time datetime="{{ i.due.strftime("%Y-%m%dT%H:%M:%S") }}" title="{{ i.due.strftime("%B %d, %Y at %I:%M:%S %p") }}">{{ i.due_pretty }}</time> {% if i.due_cutoff_pretty %}(cutoff <time datetime="{{ i.due_cutoff.strftime("%Y-%m%dT%H:%M:%S") }}" title="{{ i.due_cutoff.strftime("%B %d, %Y at %I:%M:%S %p") }}">{{ i.due_cutoff_pretty }}</time>){% endif %}
+                {% autoescape false %}due {{ create_time_element(i.due) }} {% if i.due_cutoff %}(cutoff {{ create_time_element(i.due_cutoff) }}){% endif %}{% endautoescape %}
             </div>
         </div>
     {% endfor %}
-    {% if not assignments %}
+    {% if not assignments and not hidden_assignments %}
         <div class="assignment">
             You do not have, and have never had, any assignments due.
         </div>
+    {% elif not assignments %}
+        <div class="assignment">
+            You do not have any assignments due.
+        </div>
+    {% endif %}
+    {% if hidden_assignments > 0 %}
+        <a class="show_hidden heading" href="?show_all">
+            Show All Assignments ({{ hidden_assignments }} hidden)
+        </a>
+    {% endif %}
+    {% if hidden_assignments < 0 %}
+        <a class="show_hidden heading" href="?">
+            Showing All Assignments (Show Less)
+        </a>
     {% endif %}
     </div>
 {% endblock %}

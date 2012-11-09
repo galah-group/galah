@@ -11,9 +11,11 @@
 #container {
     color: #333;
     font-size: 12pt;
-    padding: 0px 100px;
+    padding: 0px 30px;
     font-family: Palatino, Georgia, serif;
     min-width: 400px;
+    max-width: 1080px;
+    margin: 0px auto;
 }
 
 a { 
@@ -159,6 +161,15 @@ h3 {
     margin-bottom: 5px;
 }
 
+#assignments .show_hidden {
+    display: block;
+    font-size: 11pt;
+    text-align: center;
+    background-color: white;
+    border: 1px solid #CCC;
+    padding: 4px;
+}
+
 #assignments .class_name {
     font-weight: normal;
     padding: 1px 1px 2px 1px;
@@ -167,6 +178,11 @@ h3 {
     border-width: 1px 1px 0px 1px;
     color: #333;
     background-color: white;
+}
+
+#assignments .submission_status {
+    font-size: 10pt;
+    font-weight: normal;
 }
 
 /* Login Page */
