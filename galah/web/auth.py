@@ -25,7 +25,7 @@ from functools import wraps
 from flask.ext.login import current_user
 from flask import current_app, flash
 from types import StringType
-from galah.db.helpers.pretty import pretty_list
+from galah.base.pretty import pretty_list
 def account_type_required(account_type):
     """
     A decorator that can be applied to views to only allow access to users with

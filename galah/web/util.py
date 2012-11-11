@@ -22,7 +22,7 @@ def is_url_on_site(app, url):
         
     return True
 
-from galah.db.helpers.pretty import pretty_time_distance
+from galah.base.pretty import pretty_time_distance
 import datetime
 def create_time_element(timestamp, now = None):
     if now is None:

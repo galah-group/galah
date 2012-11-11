@@ -13,6 +13,13 @@ config = {
     "use_oauth": False
 }
 
+class PermissionError(Exception):
+    def __init__(self, what):
+        self.what = str(what)
+
+    def __str__(self):
+        return self.what
+
 def to_json(obj):
     """
     Serializes an object into a JSON representation. The returned string will be
@@ -203,7 +210,10 @@ def _call(interactive, api_name, *args, **kwargs):
     # Unfortunately the status code can't be set to 500 on the server side
     # because of some issues with Flask, so we have this custom header.
     if request.headers["X-CallSuccess"] != "True":
-        raise RuntimeError(request.text)
+        if request.headers["X-ErrorType"] == "PermissionError":
+            raise PermissionError(request.text)
+        else:
+            raise RuntimeError(request.text)
 
     # If we're not in interactive mode, our job is done already.
     if not interactive:
@@ -282,6 +292,12 @@ def parse_arguments(args = sys.argv[1:]):
             "--oauth", "-o", action = "store_true",
             help = "If specified, you will be able to login using your google "
                    "account as long as the email matches one stored in the db."
+        ),
+        make_option(
+            "--no-oauth", action = "store_true",
+            help = "If specified, oauth will not be used. Use this option if "
+                   "you set use_oauth in your configuration but you don't want "
+                   "to use it temporarily."
         ),
         make_option(
             "--config-path", action = "store_true", dest = "show_config_path",
@@ -455,19 +471,12 @@ def main():
 
         # If the above call didn't error, we're all set.
         exit(0)
+    except PermissionError:
+        # Continue if we had a permission problem, we'll try to reauthenticate
+        # below and try again.
+        pass
     except RuntimeError as e:
-        # Check to see if we failed because we're not logged in.
-        import re
-        logged_in = not bool(re.match( 
-            "An error occurred processing your request: Only [A-Za-z ]+ users "
-            "are allowed to call [A-Za-z_]+",
-            str(e)
-        ))
-
-        # If we were already logged in or the user didn't give us any
-        # credentials, just print out the error message.
-        if logged_in or not user:
-            exit(str(e))
+        exit(str(e))
 
     # If we got this far, we failed the above command because we're not logged
     # in, so now we will try to login, and then we'll try the command again.
@@ -482,7 +491,7 @@ def main():
     password = os.environ.get("GALAH_PASSWORD") or config.get("password")
 
     # If they specify to login via a Google Account, log them in by OAuth2
-    if bool(options.oauth) or config["use_oauth"]:
+    if not options.no_oauth and (options.oauth or config["use_oauth"]):
         try:
             oauth2login(user)
 
@@ -525,10 +534,10 @@ def main():
     try:
         # Do the API command again.
         do_api_call()
-    except RuntimeError as e2:
+    except (RuntimeError, PermissionError) as e:
         # If we fail again, just print out the message, it's not a login
         # issue.
-        print >> sys.stderr, str(e2)
+        print >> sys.stderr, str(e)
 
 if __name__ == "__main__":
     main()

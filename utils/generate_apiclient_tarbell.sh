@@ -14,7 +14,7 @@ BUILD_DIR=`mktemp -d`
 echo "Created build directory at $BUILD_DIR"
 
 # Copy the actual api client to the directory
-cp ../galah/api/api_client.py $BUILD_DIR/
+cp ./api_client.py $BUILD_DIR/
 echo "Copied api_client.py into build directory."
 
 # Build all of the man pages for the api commands

@@ -1,6 +1,6 @@
-from galah.web.galahweb import app
+from galah.web import app
 from flask.ext.login import current_user
-from galah.web.galahweb.auth import FlaskUser
+from galah.web.auth import FlaskUser
 from flask import redirect, url_for, flash
 
 @app.route("/home")

@@ -1,5 +1,5 @@
 def main():
-    from galah.web.galahweb import app
+    from galah.web import app
     app.run()
 
 if __name__ == "__main__":

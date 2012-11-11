@@ -1,5 +1,5 @@
 # The actual view
-from galah.web.galahweb import app
+from galah.web import app
 from flask import render_template, url_for
 from collections import namedtuple
 

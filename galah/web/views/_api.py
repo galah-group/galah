@@ -1,11 +1,11 @@
 from flask import Response, request
-from galah.web.galahweb import app, oauth_enabled
+from galah.web import app, oauth_enabled
 from flask.ext.login import current_user
-from galah.api.commands import api_calls
-from galah.db.crypto.passcrypt import check_seal, deserialize_seal
+from galah.web.api.commands import api_calls, UserError
+from galah.base.crypto.passcrypt import check_seal, deserialize_seal
 from galah.db.models import User
 from flask.ext.login import login_user
-from galah.web.galahweb.auth import FlaskUser
+from galah.web.auth import FlaskUser
 import requests
 
 def get_many(dictionary, *args):
@@ -123,11 +123,19 @@ def api_call():
         else:
             response_text = call_result
 
-        print "Headers:", response_headers
-
         return Response(
             response = response_text,
             headers = response_headers,
+            mimetype = "text/plain"
+        )
+    except UserError as e:
+        return Response(
+            response = "Your command cannot be completed as entered: %s" %
+                str(e),
+            headers = {
+                "X-CallSuccess": "False",
+                "X-ErrorType": e.__class__.__name__
+            },
             mimetype = "text/plain"
         )
     except Exception as e:
@@ -135,6 +143,9 @@ def api_call():
         
         return Response(
             response = "An error occurred processing your request: %s" % str(e),
-            headers = {"X-CallSuccess": "False"},
+            headers = {
+                "X-CallSuccess": "False",
+                "X-ErrorType": e.__class__.__name__
+            },
             mimetype = "text/plain"
         )

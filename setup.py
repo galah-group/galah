@@ -6,8 +6,7 @@ setup(
     packages = find_packages( 
         exclude = [
             "galah.sheep*", 
-            "galah.shepherd*", 
-            "galah.admin*"
+            "galah.shepherd*"
         ]
     ),
 
@@ -17,7 +16,7 @@ setup(
     entry_points = {
         "console_scripts": [
             "create_admin.py = utils.create_admin:main",
-            "api_client.py = galah.api.api_client:main"
+            "api_client.py = utils.api_client:main"
         ]
     },
 
@@ -34,7 +33,7 @@ setup(
 
     package_data = {
         # If any package contains *.txt or *.rst files, include them:
-        "web.galahweb": ["*.html", "*.css"],
+        "web": ["*.html", "*.css"],
     },
 
     # metadata for upload to PyPI

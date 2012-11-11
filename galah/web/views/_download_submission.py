@@ -1,5 +1,5 @@
-from galah.web.galahweb import app
-from galah.web.galahweb.auth import account_type_required
+from galah.web import app
+from galah.web.auth import account_type_required
 from galah.db.models import Assignment, Submission, Archive
 from bson.objectid import ObjectId
 from bson.errors import InvalidId

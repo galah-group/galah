@@ -5,15 +5,15 @@ class SimpleArchiveForm(Form):
     archive = FieldList(FileField("Archive"), min_entries = 3)
     
 ## The Actual View ##
-from galah.web.galahweb import app
+from galah.web import app
 from flask.ext.login import current_user
-from galah.web.galahweb.auth import account_type_required
+from galah.web.auth import account_type_required
 from bson.objectid import ObjectId
 from bson.errors import InvalidId
 from flask import abort, render_template, get_flashed_messages
 from galah.db.models import Assignment, Submission
-from galah.db.helpers.pretty import pretty_time
-from galah.web.galahweb.util import create_time_element
+from galah.base.pretty import pretty_time
+from galah.web.util import create_time_element
 import datetime
 
 @app.route("/assignments/<assignment_id>/")

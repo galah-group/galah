@@ -1,14 +1,14 @@
 ## The Actual View ##
-from galah.web.galahweb import app
+from galah.web import app
 from flask.ext.login import current_user
-from galah.web.galahweb.auth import account_type_required
+from galah.web.auth import account_type_required
 from bson.objectid import ObjectId
 from bson.errors import InvalidId
 from flask import abort, render_template, request, flash, redirect, jsonify, \
                   url_for
 from galah.db.models import Submission, Assignment
-from galah.db.helpers.pretty import pretty_list, plural_if
-from galah.web.galahweb.util import is_url_on_site
+from galah.base.pretty import pretty_list, plural_if
+from galah.web.util import is_url_on_site
 from werkzeug import secure_filename
 import os.path
 import subprocess

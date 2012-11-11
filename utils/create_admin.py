@@ -12,7 +12,7 @@ def main():
 
 	# Then we will access the create_user API command directly, and use the dummy
 	# user "admin_user" to fake a current user
-	from galah.api.commands import create_user, admin_user
+	from galah.web.api.commands import create_user, admin_user
 	create_user(admin_user, user_name, password, "admin")
 
 if __name__ == "__main__":

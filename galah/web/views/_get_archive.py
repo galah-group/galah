@@ -1,6 +1,6 @@
-from galah.web.galahweb import app
+from galah.web import app
 from flask.ext.login import current_user
-from galah.web.galahweb.auth import FlaskUser
+from galah.web.auth import FlaskUser
 from flask import redirect, url_for, request, abort, current_app, send_file
 from galah.db.models import Archive
 from bson.objectid import ObjectId, InvalidId

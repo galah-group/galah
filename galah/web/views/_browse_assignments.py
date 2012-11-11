@@ -1,11 +1,11 @@
-from galah.web.galahweb import app
+from galah.web import app
 from flask.ext.login import current_user
-from galah.web.galahweb.auth import account_type_required
+from galah.web.auth import account_type_required
 from galah.db.models import Class, Assignment, Submission
 from flask import render_template, request
 import datetime
 from mongoengine import Q
-from galah.web.galahweb.util import create_time_element
+from galah.web.util import create_time_element
 
 @app.route("/assignments")
 @account_type_required(("student", "teacher"))

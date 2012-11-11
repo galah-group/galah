@@ -1,7 +1,7 @@
 from collections import namedtuple
 from threading import Thread
 from galah.db.models import Archive, Submission
-from galah.web.galahweb import app
+from galah.web import app
 import datetime
 import Queue
 import tempfile
