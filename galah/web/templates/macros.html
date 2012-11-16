@@ -1,0 +1,120 @@
+{% macro render_submission_timeline(submissions) %}
+  <!-- Dependencies for rendering the chart -->
+  <link type="text/css" rel="stylesheet" href="/static/rickshaw/rickshaw.min.css">
+  <link type="text/css" rel="stylesheet" href="/static/jquery-ui-slider-min.css">
+  <script type="text/javascript" src="/static/jquery-ui-slider-min.js"></script>
+  <script type="text/javascript" src="/static/rickshaw/vendor/d3.min.js"></script>
+  <script type="text/javascript" src="/static/rickshaw/vendor/d3.layout.min.js"></script>
+  <script type="text/javascript" src="/static/rickshaw/rickshaw.min.js"></script>
+  <!-- The chart holder -->
+  <div id="chartContainer">
+    <h2>Submission Scores</h2>
+    <p>Select a submission from timeline view to focus on submission details</p>
+    <div id="y_axis"></div>
+    <div id="chart" class="rickshaw_graph"></div>
+    <div id="slider"></div>
+    <br clear="all">
+  </div>
+
+  <script type="text/javascript">
+    var submissions = [];
+    // Populate javascript array with submission data.
+    {% for submission in  submissions %}
+      // y will be equal to whatever the submission score is.
+      // Currently it generates random scores between 1 and 100 for showcasing.
+      submissions.push({ x: new Date('{{ submission.timestamp }}').getTime(),
+                         y: Math.floor((Math.random()*100)+1),
+                         id: '{{ submission.id }}'
+		       });
+    {% endfor %}
+
+    // Instantiate our graph.
+    var graph = new Rickshaw.Graph( {
+	element: document.getElementById('chart'),
+	width: 850,
+	height: 500,
+	renderer: 'line',
+	series: [
+	    {
+		color: "#6060c0",
+		data: submissions,
+		name: 'Score'
+	    }
+	]
+    } );
+
+    // Create x-axis using time
+    var time = new Rickshaw.Fixtures.Time();
+    var hours = time.unit('hour');
+
+    var xAxis = new Rickshaw.Graph.Axis.Time({
+	graph: graph,
+	timeUnit: hours
+    });
+
+    // Create y-axis using score and grid lines.
+    var y_ticks = new Rickshaw.Graph.Axis.Y( {
+	graph: graph,
+	orientation: 'left',
+	tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
+	element: document.getElementById('y_axis'),
+    } );
+
+    graph.render();
+
+    // Create slider to focus on certain time.
+    var slider = new Rickshaw.Graph.RangeSlider( {
+	graph: graph,
+	element: $('#slider')
+    } );
+
+    // Define a custom hovering detail to insert hyperlink references to
+    // submission attempts.
+    var Hover = Rickshaw.Class.create(Rickshaw.Graph.HoverDetail, {
+	formatter: function(series, x, y) {
+    	    var formattedScore = '<b>Assignment Score:</b> '
+    		+ parseFloat(y).toFixed(2) + '%';
+    	    var date = '<span class="date"><b>Submitted:</b> ' +
+    		new Date(x * 1000).toUTCString() +
+    		'</span>';
+    	    return '<div style="padding: 5px;">' + formattedScore + 
+    		'<br>' + date + '</div>';
+	},
+
+
+	render: function(args) {
+	    args.detail
+		.sort(function(a, b) { return a.order - b.order })
+		.forEach(function(d) {
+		    var dot = document.createElement('a');
+		    dot.href = '#' + d.value.id;
+		    dot.className = 'dot';
+		    dot.style.top = graph.y(d.value.y0 + d.value.y) + 'px';
+		    dot.style.borderColor = d.series.color;
+
+		    var item = document.createElement('div');
+		    item.className = 'item';
+		    item.style.top = dot.style.top;
+		    item.innerHTML = this.formatter(d.series, d.value.x,
+						    d.value.y);
+
+
+		    this.element.appendChild(dot);
+		    this.element.appendChild(item);
+
+		    dot.className = 'dot active';
+		    item.className = 'item active';
+
+		    this.show();
+
+		}, this );
+	},
+    });
+
+    // Connect new hover module to graph
+    var hover = new Hover({ 
+	graph: graph
+    } );
+
+</script>
+{% endmacro %}
