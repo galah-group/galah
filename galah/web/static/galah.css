@@ -1,5 +1,5 @@
 /* Style Guidelines:
- *     - If selecter has one attribute, all of it goes on one line, otherwise
+ *     - If selector has one attribute, all of it goes on one line, otherwise
  *       use multiple with brace on the same line as the selector.
  *     - Each attribute on its own line (always ending with a semicolon).
  *     - The ending brace on a line of its own with no indentation.
@@ -130,7 +130,7 @@ a {
     text-decoration: underline;
 }
 
-/* Heiarchal Headings */
+/* Hierarchical Headings */
 h1, h2, h3, h4 { font-family: Helvetica, "Helvetica Neue", Arial, sans-serif; }
 
 h1, h2 { border-bottom: 1px solid #CCC; }
@@ -249,4 +249,9 @@ body
 
     /* Proposed W3C Markup */ 
     background-image: linear-gradient(top left, #FFFFFF 0%, #D9EBFF 100%);
+}
+
+/* Datetime Highlighting */
+time[title] {
+    border-bottom: 1px dotted #666;
 }
