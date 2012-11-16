@@ -48,13 +48,16 @@
 		{% endautoescape %}
 	</div>
 	{% endif %}
-	
+	{% from "macros.html" import render_submission_timeline %}
+	{% if submissions %}
+	  {{ render_submission_timeline(submissions) }}
+	{% endif %}
 	<div id="submissions">
 		{% for submission in submissions %}
 		{% if submission.id in new_submissions %}
-		<div class="submission attention">
+		<div id="{{ submission.id }}" class="submission attention">
 		{% else %}
-		<div class="submission">
+		<div id="{{ submission.id }}" class="submission">
 		{% endif %}
 			<h3>
 			Submission on {{ submission.timestamp_pretty }}

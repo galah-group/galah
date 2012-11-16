@@ -255,3 +255,37 @@ body
 time[title] {
     border-bottom: 1px dotted #666;
 }
+
+/* Submission Timeline Styling */
+#chartContainer {
+    padding: 15px;
+    background: white;
+    border: 1px solid #ccc;
+    margin-top: 15px;
+    /* For the time being, just hide the chart stuff */
+    /* This can be changed when submission scores are added */
+    display: none;
+}
+
+#chart {
+    position: relative;
+    float: left;
+}
+
+#y_axis {
+    position: relative;
+    top: 0;
+    bottom: 0;
+    width: 40px;
+    float: left;
+}
+
+.dot {
+    pointer-events: auto;
+}
+
+#slider {
+    position: relative;
+    float: left;
+    margin-top: 10px;
+}
