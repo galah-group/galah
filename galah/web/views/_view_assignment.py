@@ -67,13 +67,12 @@ def view_assignment(assignment_id):
     # Retrieve the assignment
     try:
         assignment = Assignment.objects.get(id = id)
-        deadline = current_user.personal_deadline
-        if str(assignment_id) in deadline:
-            assignment.due_cutoff = deadline[str(assignment_id)]
     except Assignment.DoesNotExist:
         logger.info("Non-extant ID requested.")
 
         abort(404)
+
+    assignment.apply_personal_deadlines(current_user)
 
     # Get all of the submissions for this assignment
     submissions = list(
@@ -135,7 +134,7 @@ def view_assignment(assignment_id):
             timedelta = now - i.test_request_timestamp
             i.show_resubmit = (timedelta > config["STUDENT_RETRY_INTERVAL"])
             if not i.show_resubmit:
-                i.status = "Waiting for test results..." 
+                i.status = "Waiting for test results..."
             else:
                 i.status = "Test request timed out"
         elif (i.test_results and i.test_results_obj.failed):

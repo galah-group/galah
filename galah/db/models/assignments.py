@@ -70,3 +70,12 @@ class Assignment(Document):
             raise ValidationError("due cannot be later than due_cutoff")
 
         return Document.validate(self)
+
+    def apply_personal_deadlines(self, user):
+        self.due_cutoff = user.personal_deadline.get(
+            str(self.id), self.due_cutoff
+        )
+
+        self.due = user.personal_due_date.get(
+            str(self.id), self.due
+        )

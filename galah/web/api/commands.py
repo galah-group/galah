@@ -769,7 +769,7 @@ def assignment_progress(current_user, id, show_distro = ""):
         sorted_scores = sorted(distribution.keys())
         for score in sorted_scores:
             progress += "%d: %d\n" % (score, distribution[score])
-        
+
 
     return progress
 
@@ -942,7 +942,7 @@ def list_submissions(current_user, assn_id, user_id):
             (_submission_to_str(submission), _test_result_to_str(result))
 
     return submission_list
-    
+
 @_api_call(("admin", "teacher", "teaching_assistant"))
 def change_submission_grade(current_user, assignment, user, new_score,
                             submission = ""):
@@ -974,7 +974,8 @@ def change_submission_grade(current_user, assignment, user, new_score,
         (_submission_to_str(the_submission), float(new_score))
 
 @_api_call(("admin", "teacher", "teaching_assistant"))
-def modify_user_deadline(current_user, assignment, user, new_date):
+def modify_user_deadline(current_user, assignment, user, new_due_date = "",
+        new_cutoff_date = ""):
     the_assignment = _get_assignment(assignment, current_user)
     the_user = _get_user(user, current_user)
 
@@ -984,13 +985,41 @@ def modify_user_deadline(current_user, assignment, user, new_date):
             "You can only modify assignments for classes you teach."
         )
 
-    # Mongo only stores Dictionary keys as strings, so we need to convert.
-    the_user.personal_deadline[str(the_assignment.id)] = _to_datetime(new_date)
+    if not new_due_date and not new_cutoff_date:
+        raise UserError(
+            "At least one of new_due_date and new_cutoff_date must be "
+            "specified."
+        )
+
+    change_descriptions = []
+
+    if new_cutoff_date:
+        the_user.personal_deadline[str(the_assignment.id)] = \
+            _to_datetime(new_cutoff_date)
+
+        change_descriptions.append(
+            "Set personal cutoff date to %s." %
+                (new_cutoff_date)
+        )
+
+    if new_due_date:
+        the_user.personal_due_date[str(the_assignment.id)] = \
+            _to_datetime(new_due_date)
+
+        change_descriptions.append(
+            "Set personal due date to %s." %
+                (new_due_date)
+        )
+
     the_user.save()
 
-    return "Successfully modified the deadline of %s for %s to %s" % \
-        (_user_to_str(the_user), _assignment_to_str(the_assignment),
-         new_date)
+    return (
+        "Successfully modified personal deadlines of %s for %s.\n\t%s" % (
+            _user_to_str(the_user),
+            _assignment_to_str(the_assignment),
+            "\n\t".join(change_descriptions)
+        )
+    )
 
 @_api_call(("admin", "teacher", "teaching_assistant"))
 def get_archive(current_user, assignment, email = ""):

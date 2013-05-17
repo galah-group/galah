@@ -22,7 +22,8 @@ import sys
 from galah.base.flockmail import FlockMessage, TestRequest, InternalTestRequest
 from galah.base.zmqhelpers import router_send_json, router_recv_json
 from flockmanager import FlockManager
-from galah.db.models import Submission, Assignment, TestHarness, TestResult
+from galah.db.models import (Submission, Assignment, TestHarness, TestResult,
+                             User)
 from bson.objectid import ObjectId
 from bson.errors import InvalidId, InvalidDocument
 import datetime
@@ -64,6 +65,10 @@ def match_found(flock_manager, sheep_identity, request):
     ).first()
     assignment = Assignment.objects.get(id = submission.assignment)
     test_harness = TestHarness.objects.get(id = assignment.test_harness)
+
+    # Apply any personal deadlines to the assignment object.
+    user = User.objects.get(email = submission.user)
+    assignment.apply_personal_deadlines(user)
 
     data = {
         "assignment": assignment.to_dict(),

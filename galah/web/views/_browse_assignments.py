@@ -35,7 +35,7 @@ logger = \
 def browse_assignments():
     # Grab all the current user's classes
     classes = Class.objects(id__in = current_user.classes).only("name")
-    
+
     # Get the current time so we don't have to do it over and over again.
     now = datetime.datetime.today()
 
@@ -45,14 +45,16 @@ def browse_assignments():
             (Q(hide_until = None) | Q(hide_until__lt = now))
         ).only("name", "due", "due_cutoff", "for_class"))
     else:
-        # Figure out which assignments the users have personal due date
-        # extensions for first.
-        due_date_exceptions = []
-        for i in current_user.personal_deadline.keys():
-            deadline = current_user.personal_deadline[i]
-            if deadline > now - datetime.timedelta(weeks = 1):
-                due_date_exceptions.append(ObjectId(i))
-                
+        personal_deadlines = (current_user.personal_deadline.items() +
+            current_user.personal_due_date.items())
+
+        # Figure out which assignments the users have personal deadline
+        # extensions first.
+        due_date_exceptions = set()
+        for k, v in personal_deadlines:
+            if v > now - datetime.timedelta(weeks = 1):
+                due_date_exceptions.add(ObjectId(k))
+        due_date_exceptions = list(due_date_exceptions)
 
         assignments = list(Assignment.objects(
             Q(for_class__in = current_user.classes) &
@@ -89,12 +91,10 @@ def browse_assignments():
                 "Assignment with id %s references non-existant class with id "
                 "%s." % (str(i.id, i.for_class))
             )
-            
+
             i.class_name = "DNE"
 
-        # Adjust due and due_cutoff if user has a personal deadline.
-        if str(i.id) in current_user.personal_deadline:
-            i.due_cutoff = current_user.personal_deadline[str(i.id)]
+        i.apply_personal_deadlines(current_user)
 
         # Figure out the status messages that we want to display to the user.
         submitted = next((j for j in submissions if j.assignment == i.id), None)
